@@ -1,5 +1,4 @@
-import firebase from 'firebase/app';
-import { getDatabase } from 'firebase/database';
+import { initializeApp } from 'firebase/app';
 
 interface IFirebaseConfig {
   apiKey: string
@@ -23,7 +22,6 @@ const firebaseConfig: IFirebaseConfig = {
   measurementId: 'G-HN9XVCVD19'
 };
 
-firebase.initializeApp(firebaseConfig);
-const database = getDatabase();
+const database = initializeApp(firebaseConfig);
 
 export default database;
