@@ -13,6 +13,6 @@ export const decodeToken = (token: string): any => {
     const data: any = verify(token, SECRET_KEY);
     return data;
   } catch(error) {
-    console.error(error);
+    return error.message;
   }   
 }
