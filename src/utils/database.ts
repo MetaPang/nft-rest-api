@@ -1,25 +1,28 @@
 import { initializeApp } from 'firebase/app';
+import 'dotenv/config';
 
-interface IFirebaseConfig {
-  apiKey: string
-  authDomain: string
-  databaseURL: string
-  projectId: string
-  storageBucket: string
-  messagingSenderId: string
-  appId: string
-  measurementId?: string
-};
+import { IFirebaseConfig } from '../interfaces';
+
+const {
+  FIREBASE_APP_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_DATABASE_URL,
+  FIREBASE_PRODUCT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGE_SENDER_ID,
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID
+} = process.env;
 
 const firebaseConfig: IFirebaseConfig = {
-  apiKey: 'AIzaSyA-ZnxT3IAS3rcan5ub91dnLsZTpSAqk_8',
-  authDomain: 'bangbangslime-febd7.firebaseapp.com',
-  databaseURL: 'https://bangbangslime-febd7-default-rtdb.firebaseio.com',
-  projectId: 'bangbangslime-febd7',
-  storageBucket: 'bangbangslime-febd7.appspot.com',
-  messagingSenderId: '622462435619',
-  appId: '1:622462435619:web:1d70e1968aefbad3124c96',
-  measurementId: 'G-HN9XVCVD19'
+  apiKey: FIREBASE_APP_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  databaseURL: FIREBASE_DATABASE_URL,
+  projectId: FIREBASE_PRODUCT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGE_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID
 };
 
 const database = initializeApp(firebaseConfig);

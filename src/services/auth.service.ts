@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { getDatabase, ref, get, update, child } from 'firebase/database';
 
-import database from 'src/utils/database';
-import { encodeToken, decodeToken } from 'src/utils/token';
-import { IAuthResult } from 'src/interfaces';
+import database from '../utils/database';
+import { encodeToken, decodeToken } from '../utils/token';
+import { IResult } from '../interfaces';
 
 @Injectable()
 export class AuthService {
@@ -29,7 +29,7 @@ export class AuthService {
   
           await update(dbRef, updates);
   
-          const result: IAuthResult = {
+          const result: IResult = {
             code: '0',
             msg: null,
             data: {
@@ -85,7 +85,7 @@ export class AuthService {
     
             await update(dbRef, updates);
     
-            const result: IAuthResult = {
+            const result: IResult = {
               code: '0',
               msg: null,
               data: {
