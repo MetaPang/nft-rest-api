@@ -85,7 +85,7 @@ export class WalletService {
             data: {
               googleId: req,
               address: value.wallet.address,
-              pirvateKey: query?.export === 'true' ? value.wallet.privateKey : undefined
+              privateKey: query?.export === 'true' ? value.wallet.privateKey : undefined
             },
             success: true
           }
