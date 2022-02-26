@@ -8,7 +8,7 @@ import web3 from '../utils/ethereum';
 import { IResult } from '../interfaces';
 import Token from '../contract/token.json';
 
-const { TOKEN_ADDRESS, NFT_ADDRESS } = process.env;
+const { TOKEN_ADDRESS } = process.env;
 
 @Injectable()
 export class WalletService {
