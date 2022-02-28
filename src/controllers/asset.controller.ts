@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Request } from '@nestjs/common';
 
 import { AssetService } from '../services/asset.service';
 import { tokenValidator } from '../utils/token';
@@ -14,6 +14,26 @@ export class AssetController {
 
       if (isValidation.code === undefined) {
         return this.assetService.withdrawAsset(isValidation, req.body);
+      } else {
+        return isValidation;
+      }
+    } else {
+      return {
+        code: "9000",
+        msg: "파라미터 에러",
+        data: null,
+        success: false
+      };
+    }
+  }
+
+  @Post('/asset/mint')
+  assetMint(@Request() req: any): any {
+    if (req.body.amount !== '' && req.body.feeRate !== '') {
+      const isValidation = tokenValidator(req.headers.authorization);
+
+      if (isValidation.code === undefined) {
+        return this.assetService.mintAsset(isValidation, req.body);
       } else {
         return isValidation;
       }

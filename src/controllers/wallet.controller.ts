@@ -39,4 +39,24 @@ export class WalletController {
       return isValidation;
     }
   }
+
+  @Get('/wallet/check')
+  walletCheck(@Request() req: any): any {
+    if (req.query.amount !== '' && req.body.feeRate !== '') {
+      const isValidation = tokenValidator(req.headers.authorization);
+
+      if (isValidation.code === undefined) {
+        return this.walletService.checkWallet(isValidation, req.query);
+      } else {
+        return isValidation;
+      }
+    } else {
+      return {
+        code: "9000",
+        msg: "파라미터 에러",
+        data: null,
+        success: false
+      };
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { getDatabase, ref, get, update, child } from 'firebase/database';
+import { getDatabase, ref, get, update, child, onValue, DatabaseReference } from 'firebase/database';
 import { AbiItem } from 'web3-utils';
 import 'dotenv/config';
 
@@ -176,4 +176,86 @@ export class WalletService {
       };
     }
   }
+
+  async checkWallet(req: string, query: any): Promise<any> {
+    const db = getDatabase(database)
+    const dbRef = ref(db);
+
+    try {
+      const snapshot = await get(child(dbRef, `DB/${req}`));
+
+      if (snapshot.exists()) {
+        const { itemId, to } = query;
+
+        const value = snapshot.val();
+        const itemsString = value.Item.index;
+        const items = itemsString.split(',');
+
+        const isExist = items.filter((item: string) => item === itemId).length;
+        if (isExist > 0) {
+          const allRef = ref(db, 'DB');
+
+          const { isInternal, accountId } = await checkAddress(allRef, to);
+
+          const result: IResult = {
+            code: "0",
+            msg: null,
+            data: {
+              isInternal,
+              accountId
+            },
+            success: true
+          };
+
+          return result;
+        } else {
+          return {
+            code: "9501",
+            msg: "사용자 아이템이 아님",
+            data: null,
+            success: false
+          };
+        }
+      } else {
+        return {
+          code: "9101",
+          msg: "사용자 없음",
+          data: null,
+          success: false
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        code: "9999",
+        msg: "시스템 에러",
+        data: error.message,
+        success: false
+      };
+    }
+  }
+}
+
+const checkAddress = (ref: DatabaseReference, to: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    let isInternal = false;
+    let accountId = '';
+
+    onValue(ref, (allDb) => {
+      allDb.forEach((childSnapshot) => {
+        const childKey = childSnapshot.key;
+        const childData = childSnapshot.val();
+        if (childData.wallet !== undefined) {
+          const isWallet = childData.wallet.address === to ? true : false;
+
+          if (isWallet) {
+            isInternal = isWallet;
+            accountId = childKey;
+          }
+        }
+      })
+
+      resolve({ isInternal, accountId });
+    }, { onlyOnce: true });
+  })
 }

@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { getDatabase, ref, get, update, child } from 'firebase/database';
 import { AbiItem } from 'web3-utils';
 import { Transaction as Tx } from 'ethereumjs-tx';
-import fetch from 'node-fetch';
 import request from 'request';
 import fs from 'fs';
 import mime from 'mime';
@@ -110,10 +109,8 @@ export class AssetService {
                   data: encodeTx
                 };
 
-                const ADMIN_KEY = Buffer.from(ADMIN_PRIVATEKEY, 'hex');
-
                 const tx = new Tx(rawTx, { chain: 'ropsten' });
-                tx.sign(ADMIN_KEY);
+                tx.sign(PRIVATE_KEY);
 
                 const serializedTx = tx.serialize();
                 const sended = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
@@ -136,20 +133,151 @@ export class AssetService {
             } else {
               return {
                 code: "9401",
-                msg: "지갑 잔고 부족",
+                msg: "이더리움 잔고 부족",
                 data: null,
                 success: false
               };
             }
           } else if (assetSymbol === tokenSymbol) {
-            if (total <= Number(value.Goods.gold)) {
-              const nonce = await web3.eth.getTransactionCount(ADMIN_ADDRESS);
+            const tokenBalanceWei = tokenContract.methods.balanceOf(address).call()
+            const tokenBalnace = web3.utils.fromWei(tokenBalanceWei, 'ether');
+
+            const ethWei = await web3.eth.getBalance(address);
+
+            if (total <= Number(tokenBalnace)) {
+              const nonce = await web3.eth.getTransactionCount(address);
               const gasPrice = await web3.eth.getGasPrice();
-              const gasLimit = await poolContract.methods.transfer(to, web3.utils.toWei(amount)).estimateGas({
-                from: ADMIN_ADDRESS
+              const gasLimit = await tokenContract.methods.transfer(to, web3.utils.toWei(amount)).estimateGas({
+                from: address
               });
 
-              const mintBuilder = tokenContract.methods.mint(to, web3.utils.toWei(amount));
+              const price = web3.utils.fromWei(gasPrice, 'ether');
+              let gas = Number(price) * gasLimit
+              gas = Math.floor(gas * 100000000) / 100000000;
+              const gasWei = web3.utils.toWei(`${gas}`, 'ether');
+
+              if (ethWei > gasWei) {
+                const transferBuilder = tokenContract.methods.transfer(to, web3.utils.toWei(amount));
+                const encodeTx = transferBuilder.encodeABI();
+                
+                const rawTx = {
+                  nonce: web3.utils.toHex(nonce),
+                  gasPrice: web3.utils.toHex(gasPrice),
+                  gas: web3.utils.toHex(gasLimit),
+                  from: address,
+                  to: TOKEN_ADDRESS,
+                  data: encodeTx
+                };
+
+                const tx = new Tx(rawTx, { chain: 'ropsten' });
+                tx.sign(PRIVATE_KEY);
+
+                const serializedTx = tx.serialize();
+                const transactionHash = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
+
+                if (transactionHash) {
+                  const result: IResult = {
+                    code: "0",
+                    msg: null,
+                    data: {
+                      amount: Number(amount),
+                      fee,
+                      total,
+                      transfer: transactionHash
+                    },
+                    success: true
+                  };
+
+                  return result;
+                }
+              } else {
+                return {
+                  code: "9401",
+                  msg: "이더리움 잔고 부족",
+                  data: null,
+                  success: false
+                };
+              }
+            } else {
+              return {
+                code: "9402",
+                msg: "토큰 잔고 부족",
+                data: null,
+                success: false
+              };
+            }
+          } else {
+            return {
+              code: "9000",
+              msg: "파라미터 에러",
+              data: null,
+              success: false
+            };
+          }
+        } else {
+          return {
+            code: "9302",
+            msg: "생성된 지갑 없음",
+            data: null,
+            success: false
+          };
+        }
+      } else {
+        return {
+          code: "9101",
+          msg: "사용자 없음",
+          data: null,
+          success: false
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        code: "9999",
+        msg: "시스템 에러",
+        data: error.message,
+        success: false
+      };
+    }
+  }
+
+  async mintAsset(req: string, body: any): Promise<any> {
+    const db = getDatabase(database)
+    const dbRef = ref(db);
+
+    try {
+      const snapshot = await get(child(dbRef, `DB/${req}`));
+
+      if (snapshot.exists()) {
+        const value = snapshot.val();
+
+        if (value.wallet !== undefined) {
+          const { address } = value.wallet;
+          const { amount, feeRate } = body;
+
+          const tokenContract = new web3.eth.Contract(Token as AbiItem[], TOKEN_ADDRESS);
+
+          let fee: number = Number(amount) * Number(feeRate);
+          fee = Math.floor(fee * 100000000) / 100000000;
+          let total: number = Number(amount) + fee;
+          total = Math.floor(total * 100000000) / 100000000;
+
+          const ethWei = await web3.eth.getBalance(ADMIN_ADDRESS);
+
+          if (total <= Number(value.Goods.gold)) {
+            const nonce = await web3.eth.getTransactionCount(ADMIN_ADDRESS);
+            const gasPrice = await web3.eth.getGasPrice();
+            const gasLimit = await tokenContract.methods.mint(address, web3.utils.toWei(amount)).estimateGas({
+              from: ADMIN_ADDRESS
+            });
+
+            const price = web3.utils.fromWei(gasPrice, 'ether');
+            let gas = Number(price) * gasLimit
+            gas = Math.floor(gas * 100000000) / 100000000;
+            const gasWei = web3.utils.toWei(`${gas}`, 'ether');
+
+            if (ethWei >= gasWei) {
+              const mintBuilder = tokenContract.methods.mint(address, web3.utils.toWei(amount));
               const encodeTx = mintBuilder.encodeABI();
               
               const rawTx = {
@@ -189,25 +317,18 @@ export class AssetService {
 
                 return result;
               }
-
-              return {
-                code: "0",
-                msg: "send",
-                data: null,
-                success: false
-              };
             } else {
               return {
-                code: "9402",
-                msg: "Gold 잔고 부족",
+                code: "9404",
+                msg: "관리지갑 잔고 부족",
                 data: null,
                 success: false
               };
             }
           } else {
             return {
-              code: "9000",
-              msg: "파라미터 에러",
+              code: "9403",
+              msg: "Gold 잔고 부족",
               data: null,
               success: false
             };
