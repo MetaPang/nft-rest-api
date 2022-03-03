@@ -276,6 +276,8 @@ export class AssetService {
             gas = Math.floor(gas * 100000000) / 100000000;
             const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
+            console.log(ethWei, gasWei);
+
             if (ethWei >= gasWei) {
               const mintBuilder = tokenContract.methods.mint(address, web3.utils.toWei(amount));
               const encodeTx = mintBuilder.encodeABI();
@@ -299,7 +301,8 @@ export class AssetService {
 
               if (transactionHash) {
                 const updates = {};
-                updates[`DB/${req}/Goods/gold`] = '0';
+                const gold = Number(value.Goods.gold) - total;
+                updates[`DB/${req}/Goods/gold`] = `${gold}`;
         
                 await update(dbRef, updates);
 
