@@ -156,7 +156,7 @@ export class AssetService {
               gas = Math.floor(gas * 100000000) / 100000000;
               const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
-              if (ethWei > gasWei) {
+              if (Number(ethWei) >= Number(gasWei)) {
                 const transferBuilder = tokenContract.methods.transfer(to, web3.utils.toWei(amount));
                 const encodeTx = transferBuilder.encodeABI();
                 
@@ -276,7 +276,7 @@ export class AssetService {
             gas = Math.floor(gas * 100000000) / 100000000;
             const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
-            if (ethWei >= gasWei) {
+            if (Number(ethWei) >= Number(gasWei)) {
               const mintBuilder = tokenContract.methods.mint(address, web3.utils.toWei(amount));
               const encodeTx = mintBuilder.encodeABI();
               
