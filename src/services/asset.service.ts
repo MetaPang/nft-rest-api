@@ -109,8 +109,10 @@ export class AssetService {
                   data: encodeTx
                 };
 
+                const ADMIN_KEY = Buffer.from(ADMIN_PRIVATEKEY, 'hex');
+
                 const tx = new Tx(rawTx, { chain: 'ropsten' });
-                tx.sign(PRIVATE_KEY);
+                tx.sign(ADMIN_KEY);
 
                 const serializedTx = tx.serialize();
                 const sended = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
@@ -139,7 +141,7 @@ export class AssetService {
               };
             }
           } else if (assetSymbol === tokenSymbol) {
-            const tokenBalanceWei = tokenContract.methods.balanceOf(address).call()
+            const tokenBalanceWei = await tokenContract.methods.balanceOf(address).call()
             const tokenBalnace = web3.utils.fromWei(tokenBalanceWei, 'ether');
 
             const ethWei = await web3.eth.getBalance(address);
