@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AuthController, WalletController, AssetController } from '../controllers';
-import { AuthService, WalletService, AssetService } from '../services';
+import { AuthController, WalletController, AssetController, SwapController } from '../controllers';
+import { AuthService, WalletService, AssetService, SwapService } from '../services';
 
 @Module({
   imports: [],
-  controllers: [AuthController, WalletController, AssetController],
-  providers: [AuthService, WalletService, AssetService],
+  controllers: [AuthController, WalletController, AssetController, SwapController],
+  providers: [AuthService, WalletService, AssetService, SwapService],
 })
 export class AppModule {}
