@@ -84,7 +84,7 @@ export class SwapService {
           gas = Math.floor(gas * 100000000) / 100000000;
           const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
-          if (Number(ethWei) >= Number(gasWei) && Number(ethWei) >= Number(qty)) {
+          if (Number(ethWei) >= Number(gasWei)) {
             const approveBuilder = tokenContract.methods.approve(UNISWAP_ROUTER, safe);
             const encodeTx = approveBuilder.encodeABI();
 
@@ -104,64 +104,74 @@ export class SwapService {
             const approve = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
 
             if (approve) {
-              if (symbol === 'ETH') {
-                const params = {
-                  tokenIn: WETH9,
-                  tokenOut: TOKEN_ADDRESS,
-                  fee: 10000,
-                  recipient: address,
-                  deadline: expiryDate,
-                  amountIn: qty,
-                  amountOutMinimum: 0,
-                  sqrtPriceLimitX96: 0,
-                }
-  
-                const tradeBuilder = routerContract.methods.exactInputSingle(params);
-                const encodeTx = tradeBuilder.encodeABI();
-  
-                const nonce = await web3.eth.getTransactionCount(address);
-                const gasPrice = await web3.eth.getGasPrice();
-                const gasLimit = await routerContract.methods.exactInputSingle(params).estimateGas({ 
-                  from: address,
-                  value: qty
-                });
-
-                const ethWei = await web3.eth.getBalance(address);
-                const price = web3.utils.fromWei(gasPrice, 'ether');
-                let gas = Number(price) * gasLimit;
-                gas = Math.floor(gas * 100000000) / 100000000;
-                const gasWei = web3.utils.toWei(`${gas}`, 'ether');
-                const total = Number(qty) + Number(gasWei);
-
-                if (Number(ethWei) >= total) {
-                  const rawTx = {
-                    nonce: web3.utils.toHex(nonce),
-                    gasPrice: web3.utils.toHex(gasPrice),
-                    gas: web3.utils.toHex(gasLimit),
+              if (symbol === 'ETH') {          
+                const ethBalance= await web3.eth.getBalance(address);     
+                if (Number(ethBalance) >= Number(qty)) {
+                  const params = {
+                    tokenIn: WETH9,
+                    tokenOut: TOKEN_ADDRESS,
+                    fee: 10000,
+                    recipient: address,
+                    deadline: expiryDate,
+                    amountIn: qty,
+                    amountOutMinimum: 0,
+                    sqrtPriceLimitX96: 0,
+                  }
+    
+                  const tradeBuilder = routerContract.methods.exactInputSingle(params);
+                  const encodeTx = tradeBuilder.encodeABI();
+    
+                  const nonce = await web3.eth.getTransactionCount(address);
+                  const gasPrice = await web3.eth.getGasPrice();
+                  const gasLimit = await routerContract.methods.exactInputSingle(params).estimateGas({ 
                     from: address,
-                    to: UNISWAP_ROUTER,
-                    data: encodeTx,
-                    value: web3.utils.toHex(qty)
-                  } 
-
-                  const tx = new Tx(rawTx, { chain: 'ropsten' });
-                  tx.sign(PRIVATE_KEY);
-    
-                  const serializedTx = tx.serialize();
-                  const swap = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
-    
-                  if (swap) {
-                    const result: IResult = {
-                      code: "0",
-                      msg: null,
-                      data: {
-                        approve,
-                        swap
-                      },
-                      success: true
+                    value: qty
+                  });
+  
+                  const ethWei = await web3.eth.getBalance(address);
+                  const price = web3.utils.fromWei(gasPrice, 'ether');
+                  let gas = Number(price) * gasLimit;
+                  gas = Math.floor(gas * 100000000) / 100000000;
+                  const gasWei = web3.utils.toWei(`${gas}`, 'ether');
+                  const total = Number(qty) + Number(gasWei);
+  
+                  if (Number(ethWei) >= total) {
+                    const rawTx = {
+                      nonce: web3.utils.toHex(nonce),
+                      gasPrice: web3.utils.toHex(gasPrice),
+                      gas: web3.utils.toHex(gasLimit),
+                      from: address,
+                      to: UNISWAP_ROUTER,
+                      data: encodeTx,
+                      value: web3.utils.toHex(qty)
+                    } 
+  
+                    const tx = new Tx(rawTx, { chain: 'ropsten' });
+                    tx.sign(PRIVATE_KEY);
+      
+                    const serializedTx = tx.serialize();
+                    const swap = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
+      
+                    if (swap) {
+                      const result: IResult = {
+                        code: "0",
+                        msg: null,
+                        data: {
+                          approve,
+                          swap
+                        },
+                        success: true
+                      };
+          
+                      return result;
+                    }
+                  } else {
+                    return {
+                      code: "9401",
+                      msg: "이더리움 잔고 부족",
+                      data: null,
+                      success: false
                     };
-        
-                    return result;
                   }
                 } else {
                   return {
