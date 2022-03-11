@@ -11,6 +11,7 @@ import { IResult } from '../interfaces';
 import Factory from '../contract/factory.json';
 import Router from '../contract/router.json';
 import Token from '../contract/token.json';
+import Weth from '../contract/weth.json';
 
 const { TOKEN_ADDRESS, UNISWAP_ROUTER, UNISWAP_FACTORY, WETH9 } = process.env;
 
@@ -69,6 +70,7 @@ export class SwapService {
 
           const routerContract = new web3.eth.Contract(Router as AbiItem[], UNISWAP_ROUTER);
           const tokenContract = new web3.eth.Contract(Token as AbiItem[], TOKEN_ADDRESS);
+          const wethContract = new web3.eth.Contract(Weth as AbiItem[], WETH9)
 
           const expiryDate = Math.floor(Date.now() / 1000) + 900;
           const qty = web3.utils.toWei(amount, 'ether');
@@ -225,17 +227,58 @@ export class SwapService {
                     const swap = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
       
                     if (swap) {
-                      const result: IResult = {
-                        code: "0",
-                        msg: null,
-                        data: {
-                          approve,
-                          swap
-                        },
-                        success: true
-                      };
-          
-                      return result;
+                      const wrappedBalance = await wethContract.methods.balanceOf(address).call();
+                      const nonce = await web3.eth.getTransactionCount(address);
+                      const gasPrice = await web3.eth.getGasPrice();
+                      const gasLimit = await wethContract.methods.withdraw(wrappedBalance).estimateGas({ from: address });
+                      
+                      const ethWei = await web3.eth.getBalance(address);
+                      const price = web3.utils.fromWei(gasPrice, 'ether');
+                      let gas = Number(price) * gasLimit;
+                      gas = Math.floor(gas * 100000000) / 100000000;
+                      const gasWei = web3.utils.toWei(`${gas}`, 'ether');
+
+                      if (Number(ethWei) >= Number(gasWei)) {
+                        const withdrawBuilder = wethContract.methods.withdraw(wrappedBalance);
+                        const encodeTx = withdrawBuilder.encodeABI();
+
+                        const rawTx = {
+                          nonce: web3.utils.toHex(nonce),
+                          gasPrice: web3.utils.toHex(gasPrice),
+                          gas: web3.utils.toHex(gasLimit),
+                          from: address,
+                          to: WETH9,
+                          data: encodeTx
+                        };
+    
+                        const tx = new Tx(rawTx, { chain: 'ropsten' });
+                        tx.sign(PRIVATE_KEY);
+
+                        const serializedTx = tx.serialize();
+                        const withdraw = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
+
+                        if (withdraw) {
+                          const result: IResult = {
+                            code: "0",
+                            msg: null,
+                            data: {
+                              approve,
+                              swap,
+                              withdraw
+                            },
+                            success: true
+                          };
+              
+                          return result;
+                        }
+                      } else {
+                        return {
+                          code: "9401",
+                          msg: "이더리움 잔고 부족",
+                          data: null,
+                          success: false
+                        };
+                      }
                     }
                   } else {
                     return {
