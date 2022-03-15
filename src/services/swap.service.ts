@@ -99,7 +99,7 @@ export class SwapService {
               data: encodeTx
             }
 
-            const tx = new Tx(rawTx, { chain: 'ropsten' });
+            const tx = new Tx(rawTx, { chain: 97 });
             tx.sign(PRIVATE_KEY);
 
             const serializedTx = tx.serialize();
@@ -148,7 +148,7 @@ export class SwapService {
                       value: web3.utils.toHex(qty)
                     } 
   
-                    const tx = new Tx(rawTx, { chain: 'ropsten' });
+                    const tx = new Tx(rawTx, { chain: 97 });
                     tx.sign(PRIVATE_KEY);
       
                     const serializedTx = tx.serialize();
@@ -170,7 +170,7 @@ export class SwapService {
                   } else {
                     return {
                       code: "9401",
-                      msg: "이더리움 잔고 부족",
+                      msg: "BNB 잔고 부족",
                       data: null,
                       success: false
                     };
@@ -178,7 +178,7 @@ export class SwapService {
                 } else {
                   return {
                     code: "9401",
-                    msg: "이더리움 잔고 부족",
+                    msg: "BNB 잔고 부족",
                     data: null,
                     success: false
                   };
@@ -220,7 +220,7 @@ export class SwapService {
                       data: encodeTx
                     };
 
-                    const tx = new Tx(rawTx, { chain: 'ropsten' });
+                    const tx = new Tx(rawTx, { chain: 97 });
                     tx.sign(PRIVATE_KEY);
       
                     const serializedTx = tx.serialize();
@@ -251,7 +251,7 @@ export class SwapService {
                           data: encodeTx
                         };
     
-                        const tx = new Tx(rawTx, { chain: 'ropsten' });
+                        const tx = new Tx(rawTx, { chain: 97 });
                         tx.sign(PRIVATE_KEY);
 
                         const serializedTx = tx.serialize();
@@ -274,7 +274,7 @@ export class SwapService {
                       } else {
                         return {
                           code: "9401",
-                          msg: "이더리움 잔고 부족",
+                          msg: "BNB 잔고 부족",
                           data: null,
                           success: false
                         };
@@ -283,7 +283,7 @@ export class SwapService {
                   } else {
                     return {
                       code: "9401",
-                      msg: "이더리움 잔고 부족",
+                      msg: "BNB 잔고 부족",
                       data: null,
                       success: false
                     };
@@ -301,7 +301,7 @@ export class SwapService {
           } else {
             return {
               code: "9401",
-              msg: "이더리움 잔고 부족",
+              msg: "BNB 잔고 부족",
               data: null,
               success: false
             };

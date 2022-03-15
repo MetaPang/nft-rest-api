@@ -134,7 +134,7 @@ export class WalletService {
           const tokenWei = await tokenContract.methods.balanceOf(wallet).call();
           const tokenSymbol = await tokenContract.methods.symbol().call()
 
-          const ethBalance = web3.utils.fromWei(ethWei, 'ether');
+          const bnbBalance = web3.utils.fromWei(ethWei, 'ether');
           const tokenBalance = web3.utils.fromWei(tokenWei, 'ether');
 
           const result: IResult = {
@@ -142,7 +142,7 @@ export class WalletService {
             msg: null,
             data: {
               googleId: req,
-              ethBalance,
+              bnbBalance,
               tokenBalance,
               tokenSymbol
             },
