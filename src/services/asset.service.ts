@@ -27,9 +27,9 @@ const {
 } = process.env;
 
 const common = Common.forCustomChain('mainnet', {
-  name: 'Binance Smart Chain Testnet',
-  networkId: 97,
-  chainId: 97,
+  name: 'Binance Smart Chain',
+  networkId: 56,
+  chainId: 56,
   url: BSC_NETWORK_URL
 }, 'istanbul');
 
