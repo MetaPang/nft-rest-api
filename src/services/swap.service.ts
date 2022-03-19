@@ -3,18 +3,17 @@ import { AbiItem } from 'web3-utils';
 import { Transaction as Tx } from 'ethereumjs-tx';
 import { getDatabase, ref, get, child } from 'firebase/database';
 import Common from 'ethereumjs-common';
-import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import 'dotenv/config';
+import axios from 'axios';
 
 import database from '../utils/database';
 import web3 from '../utils/ethereum';
 import { IResult } from '../interfaces';
-import Factory from '../contract/factory.json';
 import Router from '../contract/router.json';
 import Token from '../contract/token.json';
 import Weth from '../contract/weth.json';
 
-const { TOKEN_ADDRESS, UNISWAP_ROUTER, UNISWAP_FACTORY, WETH9, BSC_NETWORK_URL } = process.env;
+const { TOKEN_ADDRESS, UNISWAP_ROUTER, WETH9, BSC_NETWORK_URL } = process.env;
 
 const common = Common.forCustomChain('mainnet', {
   name: 'Binance Smart Chain',
@@ -27,22 +26,12 @@ const common = Common.forCustomChain('mainnet', {
 export class SwapService {
   async getSwapPrice(): Promise<any> {
     try {
-      const factory = new web3.eth.Contract(Factory as AbiItem[], UNISWAP_FACTORY);
-      const poolAddress = await factory.methods.getPool(TOKEN_ADDRESS, WETH9, 10000).call();
-      const poolContract = new web3.eth.Contract(IUniswapV3PoolABI as AbiItem[], poolAddress);
-      const poolBalance= await poolContract.methods.slot0.call().call();
-
-      const sqrtPriceX96 = poolBalance[0];
-      const ethPrice = (sqrtPriceX96 ** 2) / ((2 ** 96) ** 2);
-      const tokenPrice = 1 / ethPrice;
+      const priceData = await axios.get(`https://api.pancakeswap.info/api/v2/tokens/${TOKEN_ADDRESS}`);
       
       const result: IResult = {
         code: '0',
         msg: null,
-        data: {
-          ethPrice,
-          tokenPrice
-        },
+        data: priceData.data,
         success: true
       }
       
