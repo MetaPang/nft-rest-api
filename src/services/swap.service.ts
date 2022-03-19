@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AbiItem } from 'web3-utils';
 import { Transaction as Tx } from 'ethereumjs-tx';
 import { getDatabase, ref, get, child } from 'firebase/database';
+import Common from 'ethereumjs-common';
 import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import 'dotenv/config';
 
@@ -13,7 +14,14 @@ import Router from '../contract/router.json';
 import Token from '../contract/token.json';
 import Weth from '../contract/weth.json';
 
-const { TOKEN_ADDRESS, UNISWAP_ROUTER, UNISWAP_FACTORY, WETH9 } = process.env;
+const { TOKEN_ADDRESS, UNISWAP_ROUTER, UNISWAP_FACTORY, WETH9, BSC_NETWORK_URL } = process.env;
+
+const common = Common.forCustomChain('mainnet', {
+  name: 'Binance Smart Chain',
+  networkId: 56,
+  chainId: 56,
+  url: BSC_NETWORK_URL
+}, 'istanbul');
 
 @Injectable()
 export class SwapService {
@@ -72,7 +80,7 @@ export class SwapService {
           const tokenContract = new web3.eth.Contract(Token as AbiItem[], TOKEN_ADDRESS);
           const wethContract = new web3.eth.Contract(Weth as AbiItem[], WETH9)
 
-          const expiryDate = Math.floor(Date.now() / 1000) + 900;
+          const expiryDate = Math.floor(Date.now() / 1000) + 1200;
           const qty = web3.utils.toWei(amount, 'ether');
           const safe = web3.utils.toWei(SAFE_MAX.toString(), 'ether');
 
@@ -99,33 +107,29 @@ export class SwapService {
               data: encodeTx
             }
 
-            const tx = new Tx(rawTx, { chain: 97 });
+            const tx = new Tx(rawTx, { common });
             tx.sign(PRIVATE_KEY);
 
             const serializedTx = tx.serialize();
             const approve = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
 
             if (approve) {
-              if (symbol === 'ETH') {          
+              if (symbol === 'BNB') {          
                 const ethBalance= await web3.eth.getBalance(address);     
                 if (Number(ethBalance) >= Number(qty)) {
                   const params = {
-                    tokenIn: WETH9,
-                    tokenOut: TOKEN_ADDRESS,
-                    fee: 10000,
-                    recipient: address,
+                    path: [WETH9, TOKEN_ADDRESS],
+                    to: address,
                     deadline: expiryDate,
-                    amountIn: qty,
-                    amountOutMinimum: 0,
-                    sqrtPriceLimitX96: 0,
+                    amountOutMin: 0
                   }
     
-                  const tradeBuilder = routerContract.methods.exactInputSingle(params);
+                  const tradeBuilder = routerContract.methods.swapExactETHForTokens(params);
                   const encodeTx = tradeBuilder.encodeABI();
     
                   const nonce = await web3.eth.getTransactionCount(address);
                   const gasPrice = await web3.eth.getGasPrice();
-                  const gasLimit = await routerContract.methods.exactInputSingle(params).estimateGas({ 
+                  const gasLimit = await routerContract.methods.swapExactETHForTokens(params).estimateGas({ 
                     from: address,
                     value: qty
                   });
@@ -148,7 +152,7 @@ export class SwapService {
                       value: web3.utils.toHex(qty)
                     } 
   
-                    const tx = new Tx(rawTx, { chain: 97 });
+                    const tx = new Tx(rawTx, { common });
                     tx.sign(PRIVATE_KEY);
       
                     const serializedTx = tx.serialize();
@@ -185,24 +189,21 @@ export class SwapService {
                 }
               } else {
                 const params = {
-                  tokenIn: TOKEN_ADDRESS,
-                  tokenOut: WETH9,
-                  fee: 10000,
-                  recipient: address,
+                  path: [TOKEN_ADDRESS, WETH9],
+                  to: address,
                   deadline: expiryDate,
                   amountIn: qty,
-                  amountOutMinimum: 0,
-                  sqrtPriceLimitX96: 0,
+                  amountOutMin: 0
                 }
   
-                const tradeBuilder = routerContract.methods.exactInputSingle(params);
+                const tradeBuilder = routerContract.methods.swapExactTokensForETH(params);
                 const encodeTx = tradeBuilder.encodeABI();
                 const tokenWei = await tokenContract.methods.balanceOf(address).call();
                 
                 if (Number(tokenWei) >= Number(qty)) {
                   const nonce = await web3.eth.getTransactionCount(address);
                   const gasPrice = await web3.eth.getGasPrice();
-                  const gasLimit = await routerContract.methods.exactInputSingle(params).estimateGas({ from: address });
+                  const gasLimit = await routerContract.methods.swapExactTokensForETH(params).estimateGas({ from: address });
 
                   const ethWei = await web3.eth.getBalance(address);
                   const price = web3.utils.fromWei(gasPrice, 'ether');
@@ -220,7 +221,7 @@ export class SwapService {
                       data: encodeTx
                     };
 
-                    const tx = new Tx(rawTx, { chain: 97 });
+                    const tx = new Tx(rawTx, { common });
                     tx.sign(PRIVATE_KEY);
       
                     const serializedTx = tx.serialize();
@@ -251,7 +252,7 @@ export class SwapService {
                           data: encodeTx
                         };
     
-                        const tx = new Tx(rawTx, { chain: 97 });
+                        const tx = new Tx(rawTx, { common });
                         tx.sign(PRIVATE_KEY);
 
                         const serializedTx = tx.serialize();
