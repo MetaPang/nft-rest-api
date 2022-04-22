@@ -113,12 +113,12 @@ export class SwapService {
                     amountOutMin: 0
                   }
     
-                  const tradeBuilder = routerContract.methods.swapExactETHForTokens(params);
+                  const tradeBuilder = routerContract.methods.swapExactETHForTokens(params.amountOutMin, params.path, params.to, params.deadline);
                   const encodeTx = tradeBuilder.encodeABI();
     
                   const nonce = await web3.eth.getTransactionCount(address);
                   const gasPrice = await web3.eth.getGasPrice();
-                  const gasLimit = await routerContract.methods.swapExactETHForTokens(params).estimateGas({ 
+                  const gasLimit = await routerContract.methods.swapExactETHForTokens(params.amountOutMin, params.path, params.to, params.deadline).estimateGas({ 
                     from: address,
                     value: qty
                   });
@@ -185,14 +185,14 @@ export class SwapService {
                   amountOutMin: 0
                 }
   
-                const tradeBuilder = routerContract.methods.swapExactTokensForETH(params);
+                const tradeBuilder = routerContract.methods.swapExactTokensForETH(params.amountIn, params.amountOutMin, params.path, params.to, params.deadline);
                 const encodeTx = tradeBuilder.encodeABI();
                 const tokenWei = await tokenContract.methods.balanceOf(address).call();
                 
                 if (Number(tokenWei) >= Number(qty)) {
                   const nonce = await web3.eth.getTransactionCount(address);
                   const gasPrice = await web3.eth.getGasPrice();
-                  const gasLimit = await routerContract.methods.swapExactTokensForETH(params).estimateGas({ from: address });
+                  const gasLimit = await routerContract.methods.swapExactTokensForETH(params.amountIn, params.amountOutMin, params.path, params.to, params.deadline).estimateGas({ from: address });
 
                   const ethWei = await web3.eth.getBalance(address);
                   const price = web3.utils.fromWei(gasPrice, 'ether');
