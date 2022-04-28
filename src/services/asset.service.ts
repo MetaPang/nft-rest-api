@@ -167,7 +167,7 @@ export class AssetService {
               gas = Math.floor(gas * 100000000) / 100000000;
               const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
-              if (Number(ethWei) >= Number(gasWei)) {
+              if (Number(ethWei) >= (Number(gasWei) * 2)) {
                 const transferBuilder = tokenContract.methods.transfer(to, web3.utils.toWei(amount));
                 const encodeTx = transferBuilder.encodeABI();
                 
@@ -187,19 +187,50 @@ export class AssetService {
                 const transactionHash = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
 
                 if (transactionHash) {
-                  const result: IResult = {
-                    code: "0",
-                    msg: null,
-                    data: {
-                      amount: Number(amount),
-                      fee,
-                      total,
-                      transfer: transactionHash
-                    },
-                    success: true
-                  };
+                  const nonce = await web3.eth.getTransactionCount(address);
+                  const gasPrice = await web3.eth.getGasPrice();
+                  const gasLimit = await tokenContract.methods.transfer(ADMIN_ADDRESS, web3.utils.toWei(`${fee}`)).estimateGas({
+                    from: address
+                  });
 
-                  return result;
+                  const price = web3.utils.fromWei(gasPrice, 'ether');
+                  gas = Number(price) * gasLimit
+                  gas = Math.floor(gas * 100000000) / 100000000;
+                  const gasWei = web3.utils.toWei(`${gas}`, 'ether');
+
+                  const transferBuilder = tokenContract.methods.transfer(ADMIN_ADDRESS, web3.utils.toWei(`${fee}`));
+                  const encodeTx = transferBuilder.encodeABI();
+
+                  const rawTx = {
+                    nonce: web3.utils.toHex(nonce),
+                    gasPrice: web3.utils.toHex(gasPrice),
+                    gas: web3.utils.toHex(gasLimit),
+                    from: address,
+                    to: TOKEN_ADDRESS,
+                    data: encodeTx
+                  };
+  
+                  const tx = new Tx(rawTx, { common });
+                  tx.sign(PRIVATE_KEY);
+  
+                  const serializedTx = tx.serialize();
+                  const feeHash = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
+
+                  if (feeHash) {
+                    const result: IResult = {
+                      code: "0",
+                      msg: null,
+                      data: {
+                        amount: Number(amount),
+                        fee,
+                        total,
+                        transfer: transactionHash
+                      },
+                      success: true
+                    };
+  
+                    return result;
+                  }
                 }
               } else {
                 return {
