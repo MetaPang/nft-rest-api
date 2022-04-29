@@ -156,7 +156,7 @@ export class AssetService {
             const ethWei = await web3.eth.getBalance(address);
 
             if (total <= Number(tokenBalnace)) {
-              const nonce = await web3.eth.getTransactionCount(address);
+              let nonce = await web3.eth.getTransactionCount(address);
               const gasPrice = await web3.eth.getGasPrice();
               const gasLimit = await tokenContract.methods.transfer(to, web3.utils.toWei(amount)).estimateGas({
                 from: address
@@ -187,16 +187,11 @@ export class AssetService {
                 const transactionHash = await web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`);
 
                 if (transactionHash) {
-                  const nonce = await web3.eth.getTransactionCount(address);
+                  nonce = nonce + 1
                   const gasPrice = await web3.eth.getGasPrice();
                   const gasLimit = await tokenContract.methods.transfer(ADMIN_ADDRESS, web3.utils.toWei(`${fee}`)).estimateGas({
                     from: address
                   });
-
-                  const price = web3.utils.fromWei(gasPrice, 'ether');
-                  gas = Number(price) * gasLimit
-                  gas = Math.floor(gas * 100000000) / 100000000;
-                  const gasWei = web3.utils.toWei(`${gas}`, 'ether');
 
                   const transferBuilder = tokenContract.methods.transfer(ADMIN_ADDRESS, web3.utils.toWei(`${fee}`));
                   const encodeTx = transferBuilder.encodeABI();
